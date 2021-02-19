@@ -1,0 +1,62 @@
+A PyTorch model’s journey from Python to C++ is enabled by Torch Script, a representation of a PyTorch model that can be understood, compiled and serialized by the Torch Script compiler. If you are starting out from an existing PyTorch model written in the vanilla “eager” API, you must first convert your model to Torch Script. In the most common cases, discussed below, this requires only little effort. If you already have a Torch Script module, you can skip to the next section of this tutorial.
+
+There exist two ways of converting a PyTorch model to Torch Script. The first is known as tracing, a mechanism in which the structure of the model is captured by evaluating it once using example inputs, and recording the flow of those inputs through the model. This is suitable for models that make limited use of control flow. The second approach is to add explicit annotations to your model that inform the Torch Script compiler that it may directly parse and compile your model code, subject to the constraints imposed by the Torch Script language.
+
+TIP
+
+You can find the complete documentation for both of these methods, as well as further guidance on which to use, in the official Torch Script reference.
+
+Converting to Torch Script via Tracing
+To convert a PyTorch model to Torch Script via tracing, you must pass an instance of your model along with an example input to the torch.jit.trace function. This will produce a torch.jit.ScriptModule object with the trace of your model evaluation embedded in the module’s forward method:
+
+import torch
+import torchvision
+
+# An instance of your model.
+model = torchvision.models.resnet18()
+
+# An example input you would normally provide to your model's forward() method.
+example = torch.rand(1, 3, 224, 224)
+
+# Use torch.jit.trace to generate a torch.jit.ScriptModule via tracing.
+traced_script_module = torch.jit.trace(model, example)
+The traced ScriptModule can now be evaluated identically to a regular PyTorch module:
+
+In[1]: output = traced_script_module(torch.ones(1, 3, 224, 224))
+In[2]: output[0, :5]
+Out[2]: tensor([-0.2698, -0.0381,  0.4023, -0.3010, -0.0448], grad_fn=<SliceBackward>)
+Converting to Torch Script via Annotation
+Under certain circumstances, such as if your model employs particular forms of control flow, you may want to write your model in Torch Script directly and annotate your model accordingly. For example, say you have the following vanilla Pytorch model:
+
+import torch
+
+class MyModule(torch.nn.Module):
+    def __init__(self, N, M):
+        super(MyModule, self).__init__()
+        self.weight = torch.nn.Parameter(torch.rand(N, M))
+
+    def forward(self, input):
+        if input.sum() > 0:
+          output = self.weight.mv(input)
+        else:
+          output = self.weight + input
+        return output
+Because the forward method of this module uses control flow that is dependent on the input, it is not suitable for tracing. Instead, we can convert it to a ScriptModule. In order to convert the module to the ScriptModule, one needs to compile the module with torch.jit.script as follows:
+
+class MyModule(torch.nn.Module):
+    def __init__(self, N, M):
+        super(MyModule, self).__init__()
+        self.weight = torch.nn.Parameter(torch.rand(N, M))
+
+    def forward(self, input):
+        if input.sum() > 0:
+          output = self.weight.mv(input)
+        else:
+          output = self.weight + input
+        return output
+
+my_module = MyModule(10,20)
+sm = torch.jit.script(my_module)
+If you need to exclude some methods in your nn.Module because they use Python features that TorchScript doesn’t support yet, you could annotate those with @torch.jit.ignore
+
+my_module is an instance of ScriptModule that is ready for serialization
