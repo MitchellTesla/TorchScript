@@ -1,0 +1,8 @@
+This tutorial has hopefully equipped you with a general understanding of a PyTorch model’s path from Python to C++. With the concepts described in this tutorial, you should be able to go from a vanilla, “eager” PyTorch model, to a compiled ScriptModule in Python, to a serialized file on disk and – to close the loop – to an executable script::Module in C++.
+
+Of course, there are many concepts we did not cover. For example, you may find yourself wanting to extend your ScriptModule with a custom operator implemented in C++ or CUDA, and executing this custom operator inside your ScriptModule loaded in your pure C++ production environment. The good news is: this is possible, and well supported! For now, you can explore this folder for examples, and we will follow up with a tutorial shortly. In the time being, the following links may be generally helpful:
+
+The Torch Script reference: https://pytorch.org/docs/master/jit.html
+The PyTorch C++ API documentation: https://pytorch.org/cppdocs/
+The PyTorch Python API documentation: https://pytorch.org/docs/
+As always, if you run into any problems or have questions, you can use our forum or GitHub issues to get in touch.
