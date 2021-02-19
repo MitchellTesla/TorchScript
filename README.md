@@ -3,6 +3,7 @@
 LOADING A TORCHSCRIPT MODEL IN C++ 
 
 The following repositories will outline the path PyTorch provides to go from an existing Python model to a serialized representation that can be loaded and executed purely from C++, with no dependency on Python.
+Provided in 4 simple steps.
 
 As its name suggests, the primary interface to PyTorch- a Python programming language.
 
