@@ -1,0 +1,107 @@
+To load your serialized PyTorch model in C++, your application must depend on the PyTorch C++ API – also known as LibTorch. The LibTorch distribution encompasses a collection of shared libraries, header files and CMake build configuration files. While CMake is not a requirement for depending on LibTorch, it is the recommended approach and will be well supported into the future. For this tutorial, we will be building a minimal C++ application using CMake and LibTorch that simply loads and executes a serialized PyTorch model.
+
+A Minimal C++ Application
+Let’s begin by discussing the code to load a module. The following will already do:
+
+#include <torch/script.h> // One-stop header.
+
+#include <iostream>
+#include <memory>
+
+int main(int argc, const char* argv[]) {
+  if (argc != 2) {
+    std::cerr << "usage: example-app <path-to-exported-script-module>\n";
+    return -1;
+  }
+
+
+  torch::jit::script::Module module;
+  try {
+    // Deserialize the ScriptModule from a file using torch::jit::load().
+    module = torch::jit::load(argv[1]);
+  }
+  catch (const c10::Error& e) {
+    std::cerr << "error loading the model\n";
+    return -1;
+  }
+
+  std::cout << "ok\n";
+}
+The <torch/script.h> header encompasses all relevant includes from the LibTorch library necessary to run the example. Our application accepts the file path to a serialized PyTorch ScriptModule as its only command line argument and then proceeds to deserialize the module using the torch::jit::load() function, which takes this file path as input. In return we receive a torch::jit::script::Module object. We will examine how to execute it in a moment.
+
+Depending on LibTorch and Building the Application
+Assume we stored the above code into a file called example-app.cpp. A minimal CMakeLists.txt to build it could look as simple as:
+
+cmake_minimum_required(VERSION 3.0 FATAL_ERROR)
+project(custom_ops)
+
+find_package(Torch REQUIRED)
+
+add_executable(example-app example-app.cpp)
+target_link_libraries(example-app "${TORCH_LIBRARIES}")
+set_property(TARGET example-app PROPERTY CXX_STANDARD 14)
+The last thing we need to build the example application is the LibTorch distribution. You can always grab the latest stable release from the download page on the PyTorch website. If you download and unzip the latest archive, you should receive a folder with the following directory structure:
+
+libtorch/
+  bin/
+  include/
+  lib/
+  share/
+The lib/ folder contains the shared libraries you must link against,
+The include/ folder contains header files your program will need to include,
+The share/ folder contains the necessary CMake configuration to enable the simple find_package(Torch) command above.
+TIP
+
+On Windows, debug and release builds are not ABI-compatible. If you plan to build your project in debug mode, please try the debug version of LibTorch. Also, make sure you specify the correct configuration in the cmake --build . line below.
+
+The last step is building the application. For this, assume our example directory is laid out like this:
+
+example-app/
+  CMakeLists.txt
+  example-app.cpp
+We can now run the following commands to build the application from within the example-app/ folder:
+
+mkdir build
+cd build
+cmake -DCMAKE_PREFIX_PATH=/path/to/libtorch ..
+cmake --build . --config Release
+where /path/to/libtorch should be the full path to the unzipped LibTorch distribution. If all goes well, it will look something like this:
+
+root@4b5a67132e81:/example-app# mkdir build
+root@4b5a67132e81:/example-app# cd build
+root@4b5a67132e81:/example-app/build# cmake -DCMAKE_PREFIX_PATH=/path/to/libtorch ..
+-- The C compiler identification is GNU 5.4.0
+-- The CXX compiler identification is GNU 5.4.0
+-- Check for working C compiler: /usr/bin/cc
+-- Check for working C compiler: /usr/bin/cc -- works
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Check for working CXX compiler: /usr/bin/c++
+-- Check for working CXX compiler: /usr/bin/c++ -- works
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Looking for pthread.h
+-- Looking for pthread.h - found
+-- Looking for pthread_create
+-- Looking for pthread_create - not found
+-- Looking for pthread_create in pthreads
+-- Looking for pthread_create in pthreads - not found
+-- Looking for pthread_create in pthread
+-- Looking for pthread_create in pthread - found
+-- Found Threads: TRUE
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /example-app/build
+root@4b5a67132e81:/example-app/build# make
+Scanning dependencies of target example-app
+[ 50%] Building CXX object CMakeFiles/example-app.dir/example-app.cpp.o
+[100%] Linking CXX executable example-app
+[100%] Built target example-app
+If we supply the path to the traced ResNet18 model traced_resnet_model.pt we created earlier to the resulting example-app binary, we should be rewarded with a friendly “ok”. Please note, if try to run this example with my_module_model.pt you will get an error saying that your input is of an incompatible shape. my_module_model.pt expects 1D instead of 4D.
+
+root@4b5a67132e81:/example-app/build# ./example-app <path_to_model>/traced_resnet_model.pt
+ok
