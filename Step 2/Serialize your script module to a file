@@ -1,0 +1,4 @@
+Once you have a ScriptModule in your hands, either from tracing or annotating a PyTorch model, you are ready to serialize it to a file. Later on, you’ll be able to load the module from this file in C++ and execute it without any dependency on Python. Say we want to serialize the ResNet18 model shown earlier in the tracing example. To perform this serialization, simply call save on the module and pass it a filename:
+
+traced_script_module.save("traced_resnet_model.pt")
+This will produce a traced_resnet_model.pt file in your working directory. If you also would like to serialize my_module, call my_module.save("my_module_model.pt") We have now officially left the realm of Python and are ready to cross over to the sphere of C++.
