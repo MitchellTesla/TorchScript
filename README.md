@@ -11,4 +11,4 @@ While Python is a suitable and the preferred language for many scenarios requiri
 
 For production scenarios, C++ is most often the language of choice, even if only to bind it into other languages like Java, Rust, or Go. 
 
-Created and Released by - Justin Mitchell  2021
+Created and Released for research and development by - Justin Mitchell  2021
